@@ -1,4 +1,4 @@
-# DOT-NL Laadpalen (Home Assistant integration)
+# DOT-NL publieke laadpalen (Home Assistant integration)
 
 Home Assistant custom integration die **openbare laadpalen in een zelf te kiezen
 gebied** monitort via de [DOT-NL (DAFNE) API van NDW](https://docs.ndw.nu/data-uitwisseling/interface-beschrijvingen/dafne-api/).
