@@ -1,0 +1,12 @@
+{
+  "domain": "dotnl",
+  "name": "DOT-NL Laadpalen",
+  "codeowners": ["@brianlesker"],
+  "config_flow": true,
+  "documentation": "https://github.com/brianlesker/ha-dotnl",
+  "integration_type": "hub",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/brianlesker/ha-dotnl/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

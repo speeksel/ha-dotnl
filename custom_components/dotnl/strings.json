@@ -1,0 +1,54 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "DOT-NL laadpalen monitoren",
+        "description": "Geef een gebied op als boundingbox (lengte-/breedtegraden). De integratie haalt alle openbare laadpalen in dit gebied op via de NDW DOT-NL API. Teken het gebied bijvoorbeeld op https://bboxfinder.com.",
+        "data": {
+          "name": "Naam van het gebied",
+          "min_lon": "Minimum lengtegraad (west)",
+          "min_lat": "Minimum breedtegraad (zuid)",
+          "max_lon": "Maximum lengtegraad (oost)",
+          "max_lat": "Maximum breedtegraad (noord)",
+          "scan_interval": "Verversingsinterval in seconden"
+        }
+      },
+      "reconfigure": {
+        "title": "DOT-NL gebied aanpassen",
+        "data": {
+          "name": "Naam van het gebied",
+          "min_lon": "Minimum lengtegraad (west)",
+          "min_lat": "Minimum breedtegraad (zuid)",
+          "max_lon": "Maximum lengtegraad (oost)",
+          "max_lat": "Maximum breedtegraad (noord)",
+          "scan_interval": "Verversingsinterval in seconden"
+        }
+      }
+    },
+    "error": {
+      "invalid_bbox": "Ongeldige boundingbox: min-coördinaten moeten kleiner zijn dan max-coördinaten.",
+      "bbox_too_large": "Het gebied is te groot. De DOT-NL API staat maximaal 1,0 vierkante graad toe.",
+      "cannot_connect": "Kon de DOT-NL API niet bereiken. Controleer je verbinding en probeer het opnieuw.",
+      "rate_limited": "Te veel verzoeken naar de DOT-NL API. Wacht even en probeer het opnieuw.",
+      "no_charge_points": "Geen laadpalen gevonden in dit gebied. Vergroot of verplaats de boundingbox."
+    },
+    "abort": {
+      "reconfigure_successful": "Het gebied is opnieuw geconfigureerd."
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "available": {
+        "name": "Beschikbaar"
+      }
+    },
+    "sensor": {
+      "available_connectors": {
+        "name": "Vrije aansluitingen"
+      },
+      "total_connectors": {
+        "name": "Totaal aansluitingen"
+      }
+    }
+  }
+}
