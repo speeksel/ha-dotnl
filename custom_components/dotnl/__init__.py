@@ -1,4 +1,9 @@
-"""De DOT-NL laadpalen-integratie: polling-coordinator per geconfigureerd gebied."""
+"""De DOT-NL laadpalen-integratie: polling-coordinator per geconfigureerd gebied.
+
+Elk gebied heeft twee onafhankelijke coordinators:
+- dynamisch: realtime GeoJSON-feed (beschikbaarheid per laadpaal);
+- ocpi (optioneel): OCPI-bulkdataset (status per individuele aansluiting).
+"""
 
 from __future__ import annotations
 
@@ -15,25 +20,34 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .api import async_fetch_charge_points
 from .const import (
+    CONF_EVSE_DETAILS,
     CONF_MAX_LAT,
     CONF_MAX_LON,
     CONF_MIN_LAT,
     CONF_MIN_LON,
+    CONF_OCPI_SCAN_INTERVAL,
     CONF_SCAN_INTERVAL,
+    DEFAULT_OCPI_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
 )
-from .models import BoundingBox, ChargePoint, DotnlApiError
+from .models import BoundingBox, ChargePoint, DotnlApiError, EvseLocation
+from .ocpi import async_fetch_evse_locations
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = [Platform.BINARY_SENSOR, Platform.SENSOR]
 
 DotnlCoordinator = DataUpdateCoordinator[list[ChargePoint]]
+EvseCoordinator = DataUpdateCoordinator[list[EvseLocation]]
+
+type Coordinators = tuple[DotnlCoordinator, EvseCoordinator | None]
 
 
-async def _async_fetch(hass: HomeAssistant, bbox: BoundingBox) -> list[ChargePoint]:
-    """Haal de laadpalen op en vertaal API-fouten naar UpdateFailed."""
+async def _async_fetch_dynamic(
+    hass: HomeAssistant, bbox: BoundingBox
+) -> list[ChargePoint]:
+    """Haal de realtime laadpalen op en vertaal API-fouten naar UpdateFailed."""
     session = async_get_clientsession(hass)
     try:
         return await async_fetch_charge_points(session, bbox)
@@ -44,8 +58,20 @@ async def _async_fetch(hass: HomeAssistant, bbox: BoundingBox) -> list[ChargePoi
         raise UpdateFailed(msg) from err
 
 
+async def _async_fetch_ocpi(hass: HomeAssistant, bbox: BoundingBox) -> list[EvseLocation]:
+    """Haal de OCPI-bulkdataset op en vertaal API-fouten naar UpdateFailed."""
+    session = async_get_clientsession(hass)
+    try:
+        return await async_fetch_evse_locations(session, bbox)
+    except DotnlApiError as err:
+        raise UpdateFailed(str(err)) from err
+    except (TimeoutError, ClientError) as err:
+        msg = "Fout bij het downloaden van de OCPI-bulkdataset"
+        raise UpdateFailed(msg) from err
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Zet een geconfigureerd gebied op met een eigen polling-coordinator."""
+    """Zet een geconfigureerd gebied op met polling-coordinators."""
     bbox = BoundingBox(
         entry.data[CONF_MIN_LON],
         entry.data[CONF_MIN_LAT],
@@ -58,12 +84,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass,
         _LOGGER,
         name=f"{DOMAIN}_{entry.title}",
-        update_method=partial(_async_fetch, hass, bbox),
+        update_method=partial(_async_fetch_dynamic, hass, bbox),
         update_interval=timedelta(seconds=interval),
     )
     await coordinator.async_config_entry_first_refresh()
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    evse_coordinator: EvseCoordinator | None = None
+    if entry.data.get(CONF_EVSE_DETAILS, False):
+        ocpi_interval = entry.data.get(
+            CONF_OCPI_SCAN_INTERVAL, DEFAULT_OCPI_SCAN_INTERVAL
+        )
+        evse_coordinator = DataUpdateCoordinator(
+            hass,
+            _LOGGER,
+            name=f"{DOMAIN}_evse_{entry.title}",
+            update_method=partial(_async_fetch_ocpi, hass, bbox),
+            update_interval=timedelta(seconds=ocpi_interval),
+        )
+        await evse_coordinator.async_config_entry_first_refresh()
+
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = (coordinator, evse_coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
@@ -81,7 +121,7 @@ async def _async_update_listener(hass: HomeAssistant, entry: ConfigEntry) -> Non
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-def get_coordinator(hass: HomeAssistant, entry: ConfigEntry) -> DotnlCoordinator:
-    """Geef de coordinator van een entry terug (voor platform-setup)."""
-    coordinator: DotnlCoordinator = hass.data[DOMAIN][entry.entry_id]
-    return coordinator
+def get_coordinators(hass: HomeAssistant, entry: ConfigEntry) -> Coordinators:
+    """Geef beide coordinators van een entry terug (voor platform-setup)."""
+    coordinators: Coordinators = hass.data[DOMAIN][entry.entry_id]
+    return coordinators

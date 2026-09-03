@@ -7,6 +7,7 @@ binnenkomt wordt hier vertaald naar bevroren dataclasses.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import TypedDict
 
 from .const import MAX_AREA_SQUARE_DEGREES
@@ -120,6 +121,13 @@ class BoundingBox:
         """Oppervlakte in vierkante graden (API-limiet: 1,0)."""
         return (self.max_lon - self.min_lon) * (self.max_lat - self.min_lat)
 
+    def contains(self, latitude: float, longitude: float) -> bool:
+        """Waar als het punt (lat, lon) binnen de box valt."""
+        return (
+            self.min_lat <= latitude <= self.max_lat
+            and self.min_lon <= longitude <= self.max_lon
+        )
+
     def __str__(self) -> str:
         return f"{self.min_lon},{self.min_lat},{self.max_lon},{self.max_lat}"
 
@@ -159,3 +167,53 @@ class ChargePoint:
     def total(self) -> int:
         """Totaal aantal aansluitingen over alle connectortypes."""
         return sum(connector.total for connector in self.connectors)
+
+
+class EvseStatus(StrEnum):
+    """OCPI 2.2.1 EVSE-statuswaarden."""
+
+    AVAILABLE = "AVAILABLE"
+    BLOCKED = "BLOCKED"
+    CHARGING = "CHARGING"
+    IN_USE = "IN_USE"
+    OUT_OF_ORDER = "OUT_OF_ORDER"
+    PLANNED = "PLANNED"
+    REMOVED = "REMOVED"
+    RESERVED = "RESERVED"
+    UNKNOWN = "UNKNOWN"
+
+
+@dataclass(frozen=True, slots=True)
+class Evse:
+    """Één fysieke aansluiting (EVSE) van een laadpaal."""
+
+    uid: str
+    evse_id: str | None
+    status: EvseStatus
+    physical_reference: str | None
+    capabilities: tuple[str, ...]
+    connector_standard: str | None
+    connector_power_type: str | None
+    max_amperage: int | None
+    max_voltage: int | None
+    last_updated: str | None
+
+    @property
+    def is_available(self) -> bool:
+        """Waar als deze aansluiting door een EV gebruikt kan worden."""
+        return self.status is EvseStatus.AVAILABLE
+
+
+@dataclass(frozen=True, slots=True)
+class EvseLocation:
+    """Een laadpaal met per-EVSE-statussen uit de OCPI-bulkdataset.
+
+    device_id is zo gevormd dat hij samenvalt met het device van de
+    realtime feed (bijv. NL-ALL-NLLOC003255), zodat beide entiteitsets
+    onder hetzelfde apparaat hangen.
+    """
+
+    device_id: str
+    address: str | None
+    operator: str | None
+    evses: tuple[Evse, ...]

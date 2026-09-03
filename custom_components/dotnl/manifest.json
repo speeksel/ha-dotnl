@@ -7,6 +7,6 @@
   "integration_type": "hub",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/brianlesker/ha-dotnl/issues",
-  "requirements": [],
+  "requirements": ["ijson>=3.2"],
   "version": "1.0.0"
 }

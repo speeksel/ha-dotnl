@@ -1,4 +1,4 @@
-# DOT-NL publieke laadpalen (Home Assistant integration)
+# DOT-NL Laadpalen (Home Assistant integration)
 
 Home Assistant custom integration die **openbare laadpalen in een zelf te kiezen
 gebied** monitort via de [DOT-NL (DAFNE) API van NDW](https://docs.ndw.nu/data-uitwisseling/interface-beschrijvingen/dafne-api/).
@@ -9,8 +9,13 @@ automations en dashboards:
 | Entiteit | Type | Betekenis |
 |---|---|---|
 | `binary_sensor.*_beschikbaar` | Binary sensor | **Aan** = minstens één aansluiting vrij |
+| `binary_sensor.*_aansluiting_1` (, `_2`, …) | Binary sensor | **Per EVSE**: aan = deze aansluiting is beschikbaar (OCPI-status `AVAILABLE`) |
 | `sensor.*_vrije_aansluitingen` | Sensor | Aantal vrije aansluitingen |
 | `sensor.*_totaal_aansluitingen` | Sensor | Totaal aantal aansluitingen (diagnostisch) |
+
+De EVSE-sensoren (per aansluiting) dragen als attributen de volledige
+OCPI-status mee (`CHARGING`, `BLOCKED`, `OUT_OF_ORDER`, …), het EVSE-id, de
+capabilities en de specificaties van de connector (type, vermogen, ampère/volt).
 
 De binary sensor draagt als attributen o.a. het adres, de exploitant, de
 coördinaten, de laatste update-timestamp en per connector het type, vermogen en
@@ -84,9 +89,12 @@ entities:
 - Maximaal **10 requests per seconde** — bij meerdere gebieden met een korte
   poll-interval kun je hier tegenaan lopen (HTTP 429). De integratie laat dit
   als fout in de logboek zien.
-- De dynamische feed toont **aantallen** (`beschikbaar/totaal`) en het adres.
-  Het onderscheid *bezet door een auto* vs. *defect/geblokkeerd* zit alleen in
-  de volledige OCPI-bulkdataset, niet in deze realtime API.
+- **EVSE-details** (status per aansluiting) komen uit de OCPI-bulkdataset van
+  NDW (~18 MB gzip, heel Nederland). De integratie downloadt en parseert dit
+  bestand streaming (laag geheugengebruik) volgens het opgegeven
+  OCPI-interval (standaard 1× per uur, min. 10 minuten). Schakel het uit als
+  je het niet nodig hebt. Het toevoegen van een gebied duurt daardoor enkele
+  tientallen seconden langer.
 - Nieuwe laadpalen die later in het gebied verschijnen verschijnen pas na een
   herlaad van de integratie (Reconfigure).
 

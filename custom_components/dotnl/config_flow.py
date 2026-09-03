@@ -1,4 +1,4 @@
-"""Config flow: gebied (boundingbox) + poll-interval instellen, met live test-fetch."""
+"""Config flow: gebied (boundingbox) + intervallen + EVSE-details, met live test-fetch."""
 
 from __future__ import annotations
 
@@ -12,20 +12,31 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import async_fetch_charge_points
 from .const import (
+    CONF_EVSE_DETAILS,
     CONF_MAX_LAT,
     CONF_MAX_LON,
     CONF_MIN_LAT,
     CONF_MIN_LON,
     CONF_NAME,
+    CONF_OCPI_SCAN_INTERVAL,
     CONF_SCAN_INTERVAL,
+    DEFAULT_EVSE_DETAILS,
+    DEFAULT_OCPI_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MAX_OCPI_SCAN_INTERVAL,
     MAX_SCAN_INTERVAL,
+    MIN_OCPI_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
 )
 from .models import BoundingBox, BoundingBoxAreaError, BoundingBoxRangeError, DotnlApiError
 
 _LOGGER = logging.getLogger(__name__)
+
+_INTERVAL = vol.All(vol.Coerce(int), vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL))
+_OCPI_INTERVAL = vol.All(
+    vol.Coerce(int), vol.Range(min=MIN_OCPI_SCAN_INTERVAL, max=MAX_OCPI_SCAN_INTERVAL)
+)
 
 STEP_SCHEMA = vol.Schema(
     {
@@ -34,9 +45,11 @@ STEP_SCHEMA = vol.Schema(
         vol.Required(CONF_MIN_LAT): vol.Coerce(float),
         vol.Required(CONF_MAX_LON): vol.Coerce(float),
         vol.Required(CONF_MAX_LAT): vol.Coerce(float),
-        vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): vol.All(
-            vol.Coerce(int), vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL)
-        ),
+        vol.Optional(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): _INTERVAL,
+        vol.Optional(CONF_EVSE_DETAILS, default=DEFAULT_EVSE_DETAILS): bool,
+        vol.Optional(
+            CONF_OCPI_SCAN_INTERVAL, default=DEFAULT_OCPI_SCAN_INTERVAL
+        ): _OCPI_INTERVAL,
     }
 )
 
@@ -111,9 +124,16 @@ class DotnlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Optional(
                     CONF_SCAN_INTERVAL,
                     default=entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
-                ): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
-                ),
+                ): _INTERVAL,
+                vol.Optional(
+                    CONF_EVSE_DETAILS,
+                    default=entry.data.get(CONF_EVSE_DETAILS, DEFAULT_EVSE_DETAILS),
+                ): bool,
+                vol.Optional(
+                    CONF_OCPI_SCAN_INTERVAL,
+                    default=entry.data.get(
+                        CONF_OCPI_SCAN_INTERVAL, DEFAULT_OCPI_SCAN_INTERVAL
+                    ),
+                ): _OCPI_INTERVAL,
             }
         )

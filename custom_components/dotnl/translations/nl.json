@@ -10,7 +10,9 @@
           "min_lat": "Minimum breedtegraad (zuid)",
           "max_lon": "Maximum lengtegraad (oost)",
           "max_lat": "Maximum breedtegraad (noord)",
-          "scan_interval": "Verversingsinterval in seconden"
+          "scan_interval": "Verversingsinterval in seconden",
+          "evse_details": "EVSE-details ophalen (status per aansluiting; downloadt periodiek een grote dataset)",
+          "ocpi_scan_interval": "OCPI-verversingsinterval in seconden (aangeraden: 3600)"
         }
       },
       "reconfigure": {
@@ -21,7 +23,9 @@
           "min_lat": "Minimum breedtegraad (zuid)",
           "max_lon": "Maximum lengtegraad (oost)",
           "max_lat": "Maximum breedtegraad (noord)",
-          "scan_interval": "Verversingsinterval in seconden"
+          "scan_interval": "Verversingsinterval in seconden",
+          "evse_details": "EVSE-details ophalen (status per aansluiting; downloadt periodiek een grote dataset)",
+          "ocpi_scan_interval": "OCPI-verversingsinterval in seconden (aangeraden: 3600)"
         }
       }
     },

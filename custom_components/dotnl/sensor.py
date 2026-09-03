@@ -12,7 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import DotnlCoordinator, get_coordinator
+from . import DotnlCoordinator, get_coordinators
 from .device import charge_point_device_info
 from .models import ChargePoint
 
@@ -38,10 +38,10 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Maak per laadpaal een vrije- en een totaal-aansluitingensensor aan."""
-    coordinator = get_coordinator(hass, entry)
+    dynamic, _ocpi = get_coordinators(hass, entry)
     async_add_entities(
-        ChargePointCountSensor(coordinator, cp, description)
-        for cp in coordinator.data or []
+        ChargePointCountSensor(dynamic, cp, description)
+        for cp in dynamic.data or []
         for description in (AVAILABLE_DESCRIPTION, TOTAL_DESCRIPTION)
     )
 

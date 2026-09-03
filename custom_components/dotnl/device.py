@@ -8,13 +8,22 @@ from .const import DOMAIN
 from .models import ChargePoint
 
 
-def charge_point_device_info(cp: ChargePoint) -> DeviceInfo:
-    """DeviceInfo voor een laadpaal; uniek per cp_id, herkenbaar per adres."""
-    short_id = cp.cp_id.rsplit("-", 1)[-1]
-    device_name = f"{cp.address} ({short_id})" if cp.address else short_id
+def device_info_from_parts(cp_id: str, address: str | None, operator: str | None) -> DeviceInfo:
+    """DeviceInfo op basis van losse velden (deelbaar door beide datasets).
+
+    De device-identifiers zijn gebaseerd op het laadpaal-id; realtime feed en
+    OCPI-bulkdataset leveren daardoor entiteiten onder hetzelfde apparaat.
+    """
+    short_id = cp_id.rsplit("-", 1)[-1]
+    device_name = f"{address} ({short_id})" if address else short_id
     return DeviceInfo(
-        identifiers={(DOMAIN, cp.cp_id)},
+        identifiers={(DOMAIN, cp_id)},
         name=device_name,
-        manufacturer=cp.operator,
+        manufacturer=operator,
         model="Laadpaal",
     )
+
+
+def charge_point_device_info(cp: ChargePoint) -> DeviceInfo:
+    """DeviceInfo voor een laadpaal uit de realtime feed."""
+    return device_info_from_parts(cp.cp_id, cp.address, cp.operator)
